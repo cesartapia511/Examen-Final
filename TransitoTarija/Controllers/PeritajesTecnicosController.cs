@@ -1,11 +1,9 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TransitoTarija.DTOs;
 using TransitoTarija.Interfaces;
 
 namespace TransitoTarija.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/v1/peritajes")]
 public class PeritajesTecnicosController : ControllerBase

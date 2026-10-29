@@ -1,11 +1,6 @@
 @TransitoTarija_HostAddress = http://localhost:5000
 
-POST {{TransitoTarija_HostAddress}}/api/v1/auth/login
-Content-Type: application/json
-
-{
-  "numeroEscalafon": "ESC-78921",
-  "password": "valor de Auth:Password en User Secrets"
-}
+GET {{TransitoTarija_HostAddress}}/api/v1/accidentes
+Accept: application/json
 
 ###

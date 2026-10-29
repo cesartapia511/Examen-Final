@@ -8,9 +8,6 @@ namespace TransitoTarija.Services;
 
 public class AccidenteService : IAccidenteService
 {
-    private static readonly string[] GravedadesValidas = { "solo_danos", "con_heridos", "fatal" };
-    private static readonly string[] EstadosValidos = { "en_investigacion", "conciliado", "remitido_fiscalia", "cerrado" };
-
     private readonly AppDbContext _context;
 
     public AccidenteService(AppDbContext context)
@@ -18,7 +15,10 @@ public class AccidenteService : IAccidenteService
         _context = context;
     }
 
-    public async Task<List<Accidente>> ObtenerTodosAsync(string? distrito, string? gravedad, DateTime? fechaDesde)
+    public async Task<List<Accidente>> ObtenerTodosAsync(
+        string? distrito = null,
+        string? gravedad = null,
+        DateTime? fechaDesde = null)
     {
         var consulta = _context.Accidentes.AsNoTracking().AsQueryable();
 
@@ -52,9 +52,6 @@ public class AccidenteService : IAccidenteService
 
     public async Task<Accidente> CrearAsync(AccidenteDto dto)
     {
-        if (!GravedadesValidas.Contains(dto.Gravedad))
-            throw new ArgumentException("La gravedad debe ser solo_danos, con_heridos o fatal.");
-
         if (dto.OficialAsignadoId.HasValue)
         {
             var oficialExiste = await _context.Oficiales
@@ -93,21 +90,18 @@ public class AccidenteService : IAccidenteService
         return accidente;
     }
 
-    public async Task<Accidente?> ActualizarEstadoAsync(int id, string estado)
+    public async Task<bool> ActualizarEstadoAsync(int id, string estado)
     {
-        if (!EstadosValidos.Contains(estado))
-            throw new ArgumentException("El estado debe ser en_investigacion, conciliado, remitido_fiscalia o cerrado.");
-
         var accidente = await _context.Accidentes
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (accidente == null)
-            return null;
+            return false;
 
         accidente.EstadoCaso = estado;
         await _context.SaveChangesAsync();
 
-        return accidente;
+        return true;
     }
 
     private static DateTime ConvertirAUtc(DateTime fecha)

@@ -1,11 +1,9 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TransitoTarija.DTOs;
 using TransitoTarija.Interfaces;
 
 namespace TransitoTarija.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/v1/personas-involucradas")]
 public class PersonasInvolucradasController : ControllerBase
@@ -36,6 +34,9 @@ public class PersonasInvolucradasController : ControllerBase
         int id,
         [FromBody] ActualizarAlcoholemiaDto dto)
     {
+        if (dto.GradoAlcoholemiaGral < 0)
+            return BadRequest(new { mensaje = "El grado de alcoholemia no puede ser negativo." });
+
         var persona = await _service.ActualizarAlcoholemiaAsync(
             id,
             dto.GradoAlcoholemiaGral,
@@ -46,4 +47,10 @@ public class PersonasInvolucradasController : ControllerBase
 
         return Ok(persona);
     }
+}
+
+public class ActualizarAlcoholemiaDto
+{
+    public decimal GradoAlcoholemiaGral { get; set; }
+    public string EstadoAlcoholemia { get; set; } = string.Empty;
 }

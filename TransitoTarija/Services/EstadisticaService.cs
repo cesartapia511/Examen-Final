@@ -15,24 +15,24 @@ public class EstadisticaService : IEstadisticaService
 
     public async Task<object> ObtenerPuntosCriticosAsync(int anio)
     {
+        if (anio < 1 || anio > 9998)
+            return new List<object>();
+
         var inicio = new DateTime(anio, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var fin = inicio.AddYears(1);
 
         return await _context.Accidentes
             .AsNoTracking()
             .Where(a => a.FechaHora >= inicio && a.FechaHora < fin)
-            .GroupBy(a => a.DireccionReferencia)
+            .GroupBy(a => a.ZonaBarrio)
             .Select(g => new
             {
-                DireccionReferencia = g.Key,
+                ZonaBarrio = g.Key,
                 TotalAccidentes = g.Count(),
-                ConHeridos = g.Count(a => a.Gravedad == "con_heridos"),
-                Fatales = g.Count(a => a.Gravedad == "fatal"),
                 Latitud = g.Average(a => a.Latitud),
                 Longitud = g.Average(a => a.Longitud)
             })
             .OrderByDescending(p => p.TotalAccidentes)
-            .ThenBy(p => p.DireccionReferencia)
             .ToListAsync();
     }
 }

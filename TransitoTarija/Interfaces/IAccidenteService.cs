@@ -6,11 +6,11 @@ namespace TransitoTarija.Interfaces;
 
 public interface IAccidenteService
 {
-    Task<List<Accidente>> ObtenerTodosAsync(string? distrito, string? gravedad, DateTime? fechaDesde);
+    Task<List<Accidente>> ObtenerTodosAsync(string? distrito = null, string? gravedad = null, DateTime? fechaDesde = null);
 
     Task<Accidente?> ObtenerPorIdAsync(int id);
 
     Task<Accidente> CrearAsync(AccidenteDto dto);
 
-    Task<Accidente?> ActualizarEstadoAsync(int id, string estado);
+    Task<bool> ActualizarEstadoAsync(int id, string estado);
 }

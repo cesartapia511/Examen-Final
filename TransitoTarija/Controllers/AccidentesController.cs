@@ -1,12 +1,10 @@
 
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TransitoTarija.DTOs;
 using TransitoTarija.Interfaces;
 
 namespace TransitoTarija.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/v1/accidentes")]
 public class AccidentesController : ControllerBase
@@ -28,19 +26,19 @@ public class AccidentesController : ControllerBase
         return Ok(accidentes);
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id}")]
     public async Task<IActionResult> ObtenerPorId(int id)
     {
         var accidente = await _service.ObtenerPorIdAsync(id);
 
         if (accidente == null)
-            return NotFound(new { mensaje = "Accidente no encontrado" });
+            return NotFound();
 
         return Ok(accidente);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Crear([FromBody] AccidenteDto dto)
+    public async Task<IActionResult> Crear(AccidenteDto dto)
     {
         try
         {
@@ -57,21 +55,26 @@ public class AccidentesController : ControllerBase
         }
     }
 
-    [HttpPatch("{id:int}/estado")]
+    [HttpPatch("{id}/estado")]
     public async Task<IActionResult> ActualizarEstado(int id, [FromBody] ActualizarEstadoDto dto)
     {
         try
         {
-            var accidente = await _service.ActualizarEstadoAsync(id, dto.EstadoCaso);
+            var actualizado = await _service.ActualizarEstadoAsync(id, dto.EstadoCaso);
 
-            if (accidente == null)
-                return NotFound(new { mensaje = "Accidente no encontrado" });
+            if (!actualizado)
+                return NotFound();
 
-            return Ok(accidente);
+            return Ok(new { mensaje = "Estado actualizado correctamente" });
         }
         catch (ArgumentException ex)
         {
             return BadRequest(new { mensaje = ex.Message });
         }
     }
+}
+
+public class ActualizarEstadoDto
+{
+    public string EstadoCaso { get; set; } = string.Empty;
 }
