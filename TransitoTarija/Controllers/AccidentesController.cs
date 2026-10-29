@@ -1,10 +1,12 @@
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TransitoTarija.DTOs;
 using TransitoTarija.Interfaces;
 
 namespace TransitoTarija.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/v1/accidentes")]
 public class AccidentesController : ControllerBase
@@ -17,43 +19,59 @@ public class AccidentesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> ObtenerTodos()
+    public async Task<IActionResult> ObtenerTodos(
+        [FromQuery] string? distrito,
+        [FromQuery] string? gravedad,
+        [FromQuery] DateTime? fechaDesde)
     {
-        var accidentes = await _service.ObtenerTodosAsync();
+        var accidentes = await _service.ObtenerTodosAsync(distrito, gravedad, fechaDesde);
         return Ok(accidentes);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> ObtenerPorId(int id)
     {
         var accidente = await _service.ObtenerPorIdAsync(id);
 
         if (accidente == null)
-            return NotFound();
+            return NotFound(new { mensaje = "Accidente no encontrado" });
 
         return Ok(accidente);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Crear(AccidenteDto dto)
+    public async Task<IActionResult> Crear([FromBody] AccidenteDto dto)
     {
-        var accidente = await _service.CrearAsync(dto);
-        return Ok(accidente);
+        try
+        {
+            var accidente = await _service.CrearAsync(dto);
+            return Created($"/api/v1/accidentes/{accidente.Id}", accidente);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { mensaje = ex.Message });
+        }
     }
 
-    [HttpPatch("{id}/estado")]
+    [HttpPatch("{id:int}/estado")]
     public async Task<IActionResult> ActualizarEstado(int id, [FromBody] ActualizarEstadoDto dto)
     {
-        var actualizado = await _service.ActualizarEstadoAsync(id, dto.EstadoCaso);
+        try
+        {
+            var accidente = await _service.ActualizarEstadoAsync(id, dto.EstadoCaso);
 
-        if (!actualizado)
-            return NotFound();
+            if (accidente == null)
+                return NotFound(new { mensaje = "Accidente no encontrado" });
 
-        return Ok(new { mensaje = "Estado actualizado correctamente" });
+            return Ok(accidente);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
     }
-}
-
-public class ActualizarEstadoDto
-{
-    public string EstadoCaso { get; set; } = string.Empty;
 }

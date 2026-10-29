@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TransitoTarija.DTOs;
 using TransitoTarija.Services;
 
 namespace TransitoTarija.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/v1/oficiales")]
     public class OficialesController : ControllerBase

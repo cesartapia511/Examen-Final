@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using TransitoTarija.Data;
 using TransitoTarija.DTOs;
 using TransitoTarija.Interfaces;
 using TransitoTarija.Models;
@@ -6,23 +8,112 @@ namespace TransitoTarija.Services;
 
 public class AccidenteService : IAccidenteService
 {
-    public Task<List<Accidente>> ObtenerTodosAsync()
+    private static readonly string[] GravedadesValidas = { "solo_danos", "con_heridos", "fatal" };
+    private static readonly string[] EstadosValidos = { "en_investigacion", "conciliado", "remitido_fiscalia", "cerrado" };
+
+    private readonly AppDbContext _context;
+
+    public AccidenteService(AppDbContext context)
     {
-        throw new NotImplementedException();
+        _context = context;
     }
 
-    public Task<Accidente?> ObtenerPorIdAsync(int id)
+    public async Task<List<Accidente>> ObtenerTodosAsync(string? distrito, string? gravedad, DateTime? fechaDesde)
     {
-        throw new NotImplementedException();
+        var consulta = _context.Accidentes.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(distrito))
+            consulta = consulta.Where(a => a.Distrito == distrito);
+
+        if (!string.IsNullOrWhiteSpace(gravedad))
+            consulta = consulta.Where(a => a.Gravedad == gravedad);
+
+        if (fechaDesde.HasValue)
+        {
+            var desde = ConvertirAUtc(fechaDesde.Value);
+            consulta = consulta.Where(a => a.FechaHora >= desde);
+        }
+
+        return await consulta
+            .OrderByDescending(a => a.FechaHora)
+            .ToListAsync();
     }
 
-    public Task<Accidente> CrearAsync(AccidenteDto dto)
+    public async Task<Accidente?> ObtenerPorIdAsync(int id)
     {
-        throw new NotImplementedException();
+        return await _context.Accidentes
+            .AsNoTracking()
+            .Include(a => a.OficialAsignado)
+            .Include(a => a.Vehiculos)
+            .Include(a => a.Personas)
+            .Include(a => a.Peritaje)
+            .FirstOrDefaultAsync(a => a.Id == id);
     }
 
-    public Task<bool> ActualizarEstadoAsync(int id, string estado)
+    public async Task<Accidente> CrearAsync(AccidenteDto dto)
     {
-        throw new NotImplementedException();
+        if (!GravedadesValidas.Contains(dto.Gravedad))
+            throw new ArgumentException("La gravedad debe ser solo_danos, con_heridos o fatal.");
+
+        if (dto.OficialAsignadoId.HasValue)
+        {
+            var oficialExiste = await _context.Oficiales
+                .AnyAsync(o => o.Id == dto.OficialAsignadoId.Value);
+
+            if (!oficialExiste)
+                throw new ArgumentException("El oficial asignado no existe.");
+        }
+
+        var codigoExiste = await _context.Accidentes
+            .AnyAsync(a => a.CodigoCaso == dto.CodigoCaso);
+
+        if (codigoExiste)
+            throw new InvalidOperationException("Ya existe un accidente con ese código de caso.");
+
+        var accidente = new Accidente
+        {
+            CodigoCaso = dto.CodigoCaso,
+            FechaHora = ConvertirAUtc(dto.FechaHora),
+            TipoAccidente = dto.TipoAccidente,
+            Gravedad = dto.Gravedad,
+            Distrito = dto.Distrito,
+            ZonaBarrio = dto.ZonaBarrio,
+            DireccionReferencia = dto.DireccionReferencia,
+            Latitud = dto.Latitud,
+            Longitud = dto.Longitud,
+            CondicionClimatica = dto.CondicionClimatica,
+            EstadoCalzada = dto.EstadoCalzada,
+            OficialAsignadoId = dto.OficialAsignadoId,
+            Observaciones = dto.Observaciones
+        };
+
+        _context.Accidentes.Add(accidente);
+        await _context.SaveChangesAsync();
+
+        return accidente;
+    }
+
+    public async Task<Accidente?> ActualizarEstadoAsync(int id, string estado)
+    {
+        if (!EstadosValidos.Contains(estado))
+            throw new ArgumentException("El estado debe ser en_investigacion, conciliado, remitido_fiscalia o cerrado.");
+
+        var accidente = await _context.Accidentes
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (accidente == null)
+            return null;
+
+        accidente.EstadoCaso = estado;
+        await _context.SaveChangesAsync();
+
+        return accidente;
+    }
+
+    private static DateTime ConvertirAUtc(DateTime fecha)
+    {
+        return fecha.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(fecha, DateTimeKind.Utc)
+            : fecha.ToUniversalTime();
     }
 }
