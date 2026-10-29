@@ -1,5 +1,7 @@
+
 using Microsoft.EntityFrameworkCore;
 using TransitoTarija.Data;
+using TransitoTarija.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +14,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(conexionLocal)
 );
 
-
+builder.Services.AddScoped<IVehiculoInvolucradoService, VehiculoInvolucradoService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
